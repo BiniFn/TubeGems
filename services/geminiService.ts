@@ -1,6 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AiAnalysisResult } from '../types';
 
+// Declare process for TypeScript since it's injected by Vite
+declare const process: {
+  env: {
+    API_KEY: string;
+  }
+};
+
 // Initialize the Gemini client
 // The API Key is injected by Vite at build time via define: { 'process.env.API_KEY': ... }
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });

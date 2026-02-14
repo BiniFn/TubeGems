@@ -47,7 +47,7 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
           const url = window.URL.createObjectURL(blob);
           downloadBlob(url, `${metadata.title.substring(0, 30).trim()}_${item.label}.jpg`);
           window.URL.revokeObjectURL(url);
-        } catch (e) {
+        } catch (_e) {
           // Fallback to opening in new tab if fetch fails (CORS or 404)
           window.open(item.url, '_blank');
         }
@@ -71,7 +71,7 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
         setError(result.error || 'Failed to generate link');
       }
 
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred');
     } finally {
       setProcessing(null);

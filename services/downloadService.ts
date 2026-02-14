@@ -56,7 +56,7 @@ export const processDownload = async (
       const downloadUrl = `${prefix}/download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
       return { success: true, url: downloadUrl };
     }
-  } catch (e) {
+  } catch (_e) {
     // Backend not available, fall through to Cobalt
   }
 

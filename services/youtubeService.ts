@@ -55,7 +55,7 @@ export const fetchVideoMetadata = async (url: string): Promise<VideoMetadata> =>
           description = decodeHtml(match[1]);
         }
       }
-    } catch (e) {
+    } catch (_e) {
       console.warn("Could not fetch full description, falling back to title context only.");
     }
 
