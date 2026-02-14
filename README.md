@@ -5,6 +5,7 @@
 </p>
 
 <p align="center">
+  <a href="https://tubegems.onrender.com/"><strong>🌐 Live Demo</strong></a> |
   <a href="https://github.com/BiniFn/TubeGems/stargazers">
     <img src="https://img.shields.io/github/stars/BiniFn/TubeGems?style=for-the-badge&logo=github&color=6e5494" alt="Stars">
   </a>
@@ -21,6 +22,8 @@
 ## 🚀 Overview
 
 **TubeGems** is a high-performance web application designed to eliminate information overload. Instead of scrubbing through lengthy videos, TubeGems uses Large Language Models (LLMs) to extract core insights instantly, while offering a set of practical tools for media extraction.
+
+**🔗 Website:** [https://tubegems.onrender.com/](https://tubegems.onrender.com/)
 
 ### ✨ Core Functionalities
 
@@ -57,72 +60,77 @@
 ```bash
 git clone [https://github.com/BiniFn/TubeGems.git](https://github.com/BiniFn/TubeGems.git)
 cd TubeGems
-```
-3. Install Dependencies
-Bash
-npm install
-4. Configuration
-Create a .env file in the root directory and add your API keys:
 
-Code snippet
+```
+
+### 3. Install Dependencies
+
+```bash
+npm install
+
+```
+
+### 4. Configuration
+
+Create a `.env` file in the root directory and add your API keys:
+
+```env
 OPENAI_API_KEY=your_key_here
 # or
 ANTHROPIC_API_KEY=your_key_here
-5. Build and Run
-Development:
 
-Bash
+```
+
+### 5. Build and Run
+
+**Development:**
+
+```bash
 npm run dev
-Production Build:
 
-Bash
+```
+
+**Production Build:**
+
+```bash
 npm run build
 npm start
+
+```
 
 ---
 
 ### ⚠️ Known Issues
-Downloader Stability: Due to frequent updates to YouTube's infrastructure, the video download and audio extraction features may occasionally fail.
 
-Status: Currently, the Thumbnail Extractor and AI Summarizer are fully functional. We are investigating updates to the ytdl core to resolve download stream issues.
+* **Downloader Stability**: Due to frequent updates to YouTube's infrastructure, the video download and audio extraction features may occasionally fail.
+* **Status**: Currently, the **Thumbnail Extractor** and **AI Summarizer** are fully functional. We are investigating updates to the `ytdl` core to resolve download stream issues.
 
 ---
 
 ### 🗺️ Roadmap
-[ ] 🌍 Multi-language Support: Summaries in 15+ major global languages.
 
-[ ] 📊 Interactive Timestamps: Clickable points that jump to specific video moments.
-
-[ ] 🎬 Playlist Support: Batch download and summarize entire YouTube playlists.
-
-[ ] 🔐 User Accounts: Personal dashboard to save "gems" and search history.
-
-[ ] ⚡ Enhanced Engine: Transition to Rust-based processing for even faster extraction.
+* [ ] 🌍 **Multi-language Support**: Summaries in 15+ major global languages.
+* [ ] 📊 **Interactive Timestamps**: Clickable points that jump to specific video moments.
+* [ ] 🎬 **Playlist Support**: Batch download and summarize entire YouTube playlists.
+* [ ] 🔐 **User Accounts**: Personal dashboard to save "gems" and search history.
+* [ ] ⚡ **Enhanced Engine**: Transition to Rust-based processing for even faster extraction.
 
 ---
 
 ### 🤝 Contributing
+
 Contributions are welcome! Please follow these steps:
 
-Fork the Project
-
-Create your Feature Branch
-
-Bash
-git checkout -b feature/AmazingFeature
-Commit your Changes
-
-Bash
-git commit -m 'Add some AmazingFeature.'
-Push to the Branch
-
-Bash
-git push origin feature/AmazingFeature
-Open a Pull Request
+1. **Fork the Project**
+2. **Create your Feature Branch** (`git checkout -b feature/AmazingFeature`)
+3. **Commit your Changes** (`git commit -m 'Add some AmazingFeature.'`)
+4. **Push to the Branch** (`git push origin feature/AmazingFeature`)
+5. **Open a Pull Request**
 
 ---
 
 ### 📜 License & Credits
-Distributed under the MIT License. Created by BiniFn.
 
-Disclaimer: This tool is for educational purposes only. Please adhere to YouTube's Terms of Service and only download content you have the right to access.
+Distributed under the **MIT License**. Created by [BiniFn](https://github.com/BiniFn).
+
+> **Disclaimer:** This tool is for educational purposes only. Please adhere to YouTube's Terms of Service and only download content you have the right to access.
