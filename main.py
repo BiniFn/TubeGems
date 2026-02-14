@@ -1,13 +1,32 @@
-from flask import Flask, request, Response, stream_with_context, jsonify
+from flask import Flask, request, Response, stream_with_context, jsonify, send_from_directory
 from flask_cors import CORS
 from pytubefix import YouTube
 import requests
 import re
 import os
 
-# Initialize Flask App
-app = Flask(__name__)
+# Initialize Flask App serving the 'dist' folder built by Vite
+app = Flask(__name__, static_folder='dist', static_url_path='')
 CORS(app)
+
+@app.route('/')
+def serve_index():
+    if os.path.exists(os.path.join(app.static_folder, 'index.html')):
+        return send_from_directory(app.static_folder, 'index.html')
+    return "App is building... please wait or run 'npm run build'", 200
+
+@app.route('/assets/<path:path>')
+def serve_assets(path):
+    return send_from_directory(os.path.join(app.static_folder, 'assets'), path)
+
+@app.route('/<path:path>')
+def catch_all(path):
+    # Support client-side routing
+    if path.startswith('api') or path in ['health', 'download']:
+        return "Not Found", 404
+    if os.path.exists(os.path.join(app.static_folder, 'index.html')):
+        return send_from_directory(app.static_folder, 'index.html')
+    return "Not Found", 404
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -60,7 +79,6 @@ def download():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    # For local development
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Server on port {port}...")
     app.run(host='0.0.0.0', port=port)
