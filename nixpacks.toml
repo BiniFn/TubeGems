@@ -1,14 +1,15 @@
+[variables]
+CI = "false"
+NODE_ENV = "development"
+
 [phases.setup]
 nixPkgs = ["python311", "nodejs_20", "npm"]
 
 [phases.install]
-# We run the build during the install phase to ensure the 'dist' folder is present 
-# in the final image layer alongside dependencies.
-cmds = ["npm install", "npm run build", "pip install -r requirements.txt"]
+cmds = ["npm install", "pip install -r requirements.txt"]
 
 [phases.build]
-# Build is handled in install phase to guarantee persistence
-cmds = ["echo 'Build completed in install phase'"]
+cmds = ["npm run build"]
 
 [start]
 cmd = "gunicorn main:app"
