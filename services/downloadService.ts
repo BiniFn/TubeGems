@@ -6,17 +6,16 @@ interface CobaltResponse {
 }
 
 // Extensive list of public Cobalt instances
-// Updated list with high-uptime instances
 const COBALT_INSTANCES = [
-  'https://api.cobalt.tools/api/json',       // Official
-  'https://cobalt.steamodded.com/api/json',  // Reliable
-  'https://dl.khub.ky/api/json',             // Reliable
+  'https://cobalt.steamodded.com/api/json',  
+  'https://dl.khub.ky/api/json',             
   'https://api.succoon.com/api/json',
   'https://cobalt.rayrad.net/api/json',
   'https://cobalt.slpy.one/api/json',
   'https://cobalt.soapless.dev/api/json',
   'https://api.wuk.sh/api/json',
   'https://co.wuk.sh/api/json',
+  'https://api.cobalt.tools/api/json', 
 ];
 
 export const processDownload = async (
@@ -34,17 +33,17 @@ export const processDownload = async (
     vQuality,
     isAudioOnly: type === 'audio',
     aFormat: type === 'audio' ? 'mp3' : undefined,
-    filenamePattern: 'basic', // Changed to basic for better compatibility
+    filenamePattern: 'basic', 
   };
 
   // Shuffle instances to load balance
   const shuffled = [...COBALT_INSTANCES].sort(() => Math.random() - 0.5);
 
-  // Try up to 5 instances with slightly longer timeout
-  for (const api of shuffled.slice(0, 5)) {
+  // Try up to 6 instances 
+  for (const api of shuffled.slice(0, 6)) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // Increased timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
       const response = await fetch(api, {
         method: 'POST',
@@ -76,13 +75,12 @@ export const processDownload = async (
     }
   }
 
-  // 2. FALLBACK: Python Backend (yt-dlp)
+  // 2. FALLBACK: Python Backend (yt-dlp + pytubefix)
   try {
     const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     let apiUrl = isDev ? 'http://localhost:5000' : '';
-    // If we are in production (not localhost), apiUrl is empty string, meaning relative path.
-
-    // Check health first to avoid waiting for a dead server
+    
+    // Check health first 
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 3000); 
     const health = await fetch(`${apiUrl}/health`, { signal: controller.signal });
@@ -90,13 +88,14 @@ export const processDownload = async (
 
     if (health.ok) {
       const downloadUrl = `${apiUrl}/download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
+      // Just return the URL, the browser will handle the stream download
       return { success: true, url: downloadUrl };
     }
   } catch (_e) {
-    console.warn("Backend fallback failed");
+    console.warn("Backend fallback failed or unreachable");
   }
 
-  return { success: false, error: 'All download servers are currently busy. Please try again or try a different video.' };
+  return { success: false, error: 'All download servers are busy. Please try another video or check back later.' };
 };
 
 export const downloadBlob = (url: string, filename: string) => {
