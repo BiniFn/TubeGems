@@ -8,8 +8,6 @@
   <a href="https://github.com/BiniFn/TubeGems/stargazers"><img src="https://img.shields.io/github/stars/BiniFn/TubeGems?style=for-the-badge&logo=github&color=6e5494" alt="Stars"></a>
   <a href="https://github.com/BiniFn/TubeGems/network/members"><img src="https://img.shields.io/github/forks/BiniFn/TubeGems?style=for-the-badge&logo=github&color=6e5494" alt="Forks"></a>
   <a href="https://github.com/BiniFn/TubeGems/blob/main/LICENSE"><img src="https://img.shields.io/github/license/BiniFn/TubeGems?style=for-the-badge&logo=googlesheets&color=34a853" alt="License"></a>
-  <a href="https://github.com/BiniFn/TubeGems/issues"><img src="https://img.shields.io/github/issues/BiniFn/TubeGems?style=for-the-badge&logo=github&color=ea4335" alt="Issues"></a>
-  <img src="https://img.shields.io/github/actions/workflow/status/BiniFn/TubeGems/build.yml?style=for-the-badge" alt="Build Status">
 </p>
 
 ---
