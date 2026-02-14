@@ -1,4 +1,3 @@
-Markdown
 <h1 align="center">💎 TubeGems</h1>
 
 <p align="center">
