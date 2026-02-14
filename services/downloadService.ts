@@ -5,8 +5,6 @@ interface CobaltResponse {
   picker?: any[];
 }
 
-const LOCAL_PYTHON_URL = 'http://localhost:5000';
-
 // Extensive list of public Cobalt instances to ensure high availability
 const COBALT_INSTANCES = [
   'https://api.cobalt.tools/api/json',        // Official
@@ -27,31 +25,39 @@ export const processDownload = async (
   quality: string
 ): Promise<{ success: boolean; url?: string; error?: string }> => {
   
-  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
   // ---------------------------------------------------------
-  // 1. PRIORITY: Try Local Python (Pytube) Server
-  // ONLY if running locally to avoid Mixed Content errors on HTTPS sites
+  // 1. PRIORITY: Try Own Backend (Flask)
+  // This works if deployed as a full-stack app or running locally
   // ---------------------------------------------------------
-  if (isLocalhost) {
-    try {
-      // Quick health check with short timeout to see if python script is running
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), 1000); // 1s timeout
-      
-      const health = await fetch(`${LOCAL_PYTHON_URL}/health`, { 
-        signal: controller.signal 
-      });
-      clearTimeout(id);
-
-      if (health.ok) {
-        console.log('Connected to Local Pytube Server');
-        const downloadUrl = `${LOCAL_PYTHON_URL}/download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
-        return { success: true, url: downloadUrl };
-      }
-    } catch (e) {
-      console.log('Local Python server not detected, switching to Web APIs...');
+  try {
+    // Attempt to hit the health endpoint on the same origin
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 1000); 
+    
+    // In dev, Vite is on 5173, Backend on 5000. In Prod, same origin.
+    // We try relative first (Prod), then localhost:5000 (Dev fallback)
+    let apiUrl = '';
+    
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if (isDev) {
+        // Try direct localhost first
+        apiUrl = 'http://localhost:5000';
     }
+
+    const endpoint = apiUrl ? `${apiUrl}/health` : '/health';
+
+    const health = await fetch(endpoint, { signal: controller.signal });
+    clearTimeout(id);
+
+    if (health.ok) {
+      console.log('Using Python Backend');
+      const prefix = apiUrl || '';
+      const downloadUrl = `${prefix}/download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
+      return { success: true, url: downloadUrl };
+    }
+  } catch (e) {
+    // Backend not available, fall through to Cobalt
   }
 
   // ---------------------------------------------------------
@@ -112,7 +118,6 @@ export const processDownload = async (
 
       // Handle API-specific errors
       if (data.status === 'error') {
-        // Only stop if it's a hard error like "video not found", otherwise try next server
         if (data.text && (data.text.includes('limit') || data.text.includes('found'))) {
            console.warn(`API Error from ${api}:`, data.text);
         }
