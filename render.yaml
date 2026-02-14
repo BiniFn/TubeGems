@@ -1,10 +1,11 @@
 services:
   - type: web
     name: tubegems
-    env: python
-    buildCommand: npm install && npm run build && pip install -r requirements.txt
-    startCommand: gunicorn main:app
-    preDeployCommand: echo "No pre-deploy command needed"
+    env: docker
+    plan: free
+    region: oregon
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
+      - key: PORT
+        value: 5000
+      - key: API_KEY
+        sync: false
