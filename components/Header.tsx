@@ -1,11 +1,20 @@
 import React from 'react';
 import { Youtube } from 'lucide-react';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onReset?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onReset }) => {
   return (
     <header className="w-full py-6 px-4 md:px-8 border-b border-white/10 bg-black/40 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-2 group cursor-pointer">
+        <div 
+          onClick={onReset}
+          className="flex items-center gap-2 group cursor-pointer"
+          role="button"
+          tabIndex={0}
+        >
           <div className="relative">
             <Youtube className="w-8 h-8 text-red-500 fill-current group-hover:scale-110 transition-transform duration-300" />
             <div className="absolute -top-1 -right-1">

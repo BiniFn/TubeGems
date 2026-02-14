@@ -7,13 +7,15 @@ import { DownloadSection } from './components/DownloadSection';
 import { fetchVideoMetadata } from './services/youtubeService';
 import { analyzeVideoContext } from './services/geminiService';
 import { VideoMetadata, AiAnalysisResult } from './types';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [videoData, setVideoData] = useState<VideoMetadata | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<AiAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Force remount of UrlInput to clear text on reset if needed
+  const [key, setKey] = useState(0); 
 
   const handleSearch = async (url: string) => {
     setIsLoading(true);
@@ -41,12 +43,24 @@ const App: React.FC = () => {
     }
   };
 
+  const handleReset = () => {
+    setVideoData(null);
+    setAiAnalysis(null);
+    setError(null);
+    setKey(prev => prev + 1); // Reset UrlInput state
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-[#0f0f12] text-white selection:bg-red-500/30 selection:text-red-200">
-      <Header />
+      <Header onReset={handleReset} />
       
       <main className="pb-20">
-        <UrlInput onSearch={handleSearch} isLoading={isLoading} />
+        {!videoData && (
+           <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+             <UrlInput key={key} onSearch={handleSearch} isLoading={isLoading} />
+           </div>
+        )}
 
         {error && (
           <div className="max-w-2xl mx-auto mt-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-200 animate-in fade-in slide-in-from-bottom-4">
@@ -56,8 +70,16 @@ const App: React.FC = () => {
         )}
 
         {videoData && (
-          <div className="max-w-6xl mx-auto mt-16 px-4 md:px-8 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="max-w-6xl mx-auto mt-8 px-4 md:px-8 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
             
+            <button 
+              onClick={handleReset}
+              className="group flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 text-sm font-medium text-gray-400 hover:text-white transition-all duration-300 border border-white/5 hover:border-white/10"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              Search Another Video
+            </button>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left Column: Preview & Download */}
               <div className="lg:col-span-1 space-y-8">
