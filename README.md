@@ -53,3 +53,62 @@
 git clone [https://github.com/BiniFn/TubeGems.git](https://github.com/BiniFn/TubeGems.git)
 cd TubeGems
 npm install
+```
+---
+
+**Production Build:**
+
+```bash
+npm run build
+npm start
+
+```
+
+---
+
+## 🗺️ Roadmap
+
+* [ ] 🌍 **Multi-language Support**: Summaries in 15+ major global languages.
+* [ ] 📊 **Interactive Timestamps**: Clickable points that jump to specific video moments.
+* [ ] 🎬 **Playlist Support**: Batch download and summarize entire YouTube playlists.
+* [ ] 🔐 **User Accounts**: Personal dashboard to save "gems" and search history.
+* [ ] ⚡ **Enhanced Engine**: Transition to Rust-based processing for even faster extraction.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. **Fork the Project**
+2. **Create your Feature Branch**
+```bash
+git checkout -b feature/AmazingFeature
+
+```
+
+
+3. **Commit your Changes**
+```bash
+git commit -m 'Add some AmazingFeature.'
+
+```
+
+
+4. **Push to the Branch**
+```bash
+git push origin feature/AmazingFeature
+
+```
+
+
+5. **Open a Pull Request**
+
+---
+
+## 📜 License & Credits
+
+Distributed under the **MIT License**. Created by [BiniFn](https://github.com/BiniFn).
+
+> **Disclaimer:** This tool is for educational purposes only. Please adhere to YouTube's Terms of Service and only download content you have the rights to access.
+
