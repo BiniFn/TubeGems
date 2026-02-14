@@ -1,6 +1,6 @@
 from flask import Flask, request, Response, stream_with_context, jsonify, send_from_directory
 from flask_cors import CORS
-from pytubefix import YouTube
+from yt_dlp import YoutubeDL
 import requests
 import re
 import os
@@ -53,7 +53,7 @@ def catch_all(path):
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({"status": "ok", "service": "pytube-downloader"})
+    return jsonify({"status": "ok", "service": "yt-dlp-downloader"})
 
 @app.route('/download', methods=['GET'])
 def download():
@@ -64,41 +64,55 @@ def download():
         return jsonify({"error": "Missing URL"}), 400
 
     try:
-        # 'ANDROID' client is often more reliable on server IPs than 'WEB'
-        yt = YouTube(url, client='ANDROID', use_oauth=False, allow_oauth_cache=True) 
-        
-        if type_ == 'audio':
-            stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
-            ext = 'mp3'
-            content_type = 'audio/mpeg'
-        else:
-            stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
-            ext = 'mp4'
-            content_type = 'video/mp4'
-
-        if not stream:
-            return jsonify({"error": "No suitable stream found"}), 404
-
-        safe_title = re.sub(r'[\\/*?:"<>|]', "", yt.title)
-        filename = f"{safe_title}.{ext}"
-
-        def generate():
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-            # stream.url is the direct googlevideo link
-            with requests.get(stream.url, stream=True, headers=headers) as external_req:
-                external_req.raise_for_status()
-                for chunk in external_req.iter_content(chunk_size=8192):
-                    if chunk:
-                        yield chunk
-
-        resp_headers = {
-            'Content-Disposition': f'attachment; filename="{filename}"',
-            'Content-Type': content_type
+        # Configuration for yt-dlp to extract direct URL without downloading
+        ydl_opts = {
+            'quiet': True,
+            'noplaylist': True,
+            # For video: try to get mp4 with audio (progressive) or best available
+            # For audio: try to get m4a (aac) or best audio available
+            'format': 'best[ext=mp4]/best' if type_ == 'video' else 'bestaudio[ext=m4a]/bestaudio/best',
         }
 
-        return Response(stream_with_context(generate()), headers=resp_headers)
+        with YoutubeDL(ydl_opts) as ydl:
+            # extract_info(download=False) fetches metadata including the direct stream URL
+            info = ydl.extract_info(url, download=False)
+            
+            download_url = info.get('url')
+            if not download_url:
+                return jsonify({"error": "Could not retrieve direct download link"}), 404
+
+            title = info.get('title', 'video')
+            ext = info.get('ext', 'mp4')
+            
+            # Sanitize filename
+            safe_title = re.sub(r'[\\/*?:"<>|]', "", title)
+            filename = f"{safe_title}.{ext}"
+
+            # Prepare content type
+            content_type = 'video/mp4' if type_ == 'video' else f'audio/{ext}'
+
+            # Get headers required to access the stream (User-Agent, etc.)
+            req_headers = info.get('http_headers', {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            })
+
+            # Generator to stream the content from YouTube to the client
+            def generate():
+                try:
+                    with requests.get(download_url, stream=True, headers=req_headers) as external_req:
+                        external_req.raise_for_status()
+                        for chunk in external_req.iter_content(chunk_size=8192):
+                            if chunk:
+                                yield chunk
+                except Exception as stream_err:
+                    print(f"Stream Error: {stream_err}")
+
+            resp_headers = {
+                'Content-Disposition': f'attachment; filename="{filename}"',
+                'Content-Type': content_type
+            }
+
+            return Response(stream_with_context(generate()), headers=resp_headers)
 
     except Exception as e:
         print(f"Error: {str(e)}")
