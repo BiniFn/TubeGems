@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "migrate": "echo 'No migrations required'",
+    "migrate": "echo 'Pre-deploy step skipped' && exit 0",
     "start": "gunicorn -b 0.0.0.0:$PORT main:app"
   },
   "dependencies": {
