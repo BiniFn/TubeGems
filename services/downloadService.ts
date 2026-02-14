@@ -5,18 +5,19 @@ interface CobaltResponse {
   picker?: any[];
 }
 
-// Extensive list of public Cobalt instances to ensure high availability
+// Extensive list of public Cobalt instances
+// We prioritize wuk.sh as it is generally very reliable
 const COBALT_INSTANCES = [
-  'https://api.cobalt.tools/api/json',        // Official
-  'https://co.wuk.sh/api/json',               // Reliable
-  'https://api.wuk.sh/api/json',              // Reliable
+  'https://co.wuk.sh/api/json',               
+  'https://api.wuk.sh/api/json',              
   'https://cobalt.kwiatekmiki.pl/api/json',
   'https://cobalt.steamodded.com/api/json',
   'https://dl.khub.ky/api/json',
   'https://api.succoon.com/api/json',
   'https://cobalt.rayrad.net/api/json',
   'https://cobalt.slpy.one/api/json',
-  'https://cobalt.soapless.dev/api/json'
+  'https://cobalt.soapless.dev/api/json',
+  'https://api.cobalt.tools/api/json'
 ];
 
 export const processDownload = async (
@@ -26,43 +27,9 @@ export const processDownload = async (
 ): Promise<{ success: boolean; url?: string; error?: string }> => {
   
   // ---------------------------------------------------------
-  // 1. PRIORITY: Try Own Backend (Flask)
-  // This works if deployed as a full-stack app or running locally
-  // ---------------------------------------------------------
-  try {
-    // Attempt to hit the health endpoint on the same origin
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 1000); 
-    
-    // In dev, Vite is on 5173, Backend on 5000. In Prod, same origin.
-    // We try relative first (Prod), then localhost:5000 (Dev fallback)
-    let apiUrl = '';
-    
-    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    
-    if (isDev) {
-        // Try direct localhost first
-        apiUrl = 'http://localhost:5000';
-    }
-
-    const endpoint = apiUrl ? `${apiUrl}/health` : '/health';
-
-    const health = await fetch(endpoint, { signal: controller.signal });
-    clearTimeout(id);
-
-    if (health.ok) {
-      console.log('Using Python Backend');
-      const prefix = apiUrl || '';
-      const downloadUrl = `${prefix}/download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
-      return { success: true, url: downloadUrl };
-    }
-  } catch (_e) {
-    // Backend not available, fall through to Cobalt
-  }
-
-  // ---------------------------------------------------------
-  // 2. FALLBACK/PRIMARY: Use Cobalt API Mirrors
-  // This is what makes the "Published Website" work without a backend
+  // 1. PRIORITY: Use Cobalt API Mirrors (Client-Side)
+  // This is much more reliable for web deployments than 
+  // downloading via the server IP (which gets blocked by YT).
   // ---------------------------------------------------------
   
   // Map quality labels to Cobalt expectations
@@ -76,7 +43,7 @@ export const processDownload = async (
     filenamePattern: 'classic'
   };
 
-  // Shuffle instances slightly to distribute load (simple randomization)
+  // Shuffle instances slightly to distribute load, keeping reliable ones first
   const reliable = COBALT_INSTANCES.slice(0, 3);
   const others = COBALT_INSTANCES.slice(3).sort(() => Math.random() - 0.5);
   const instancesToTry = [...reliable, ...others];
@@ -118,19 +85,46 @@ export const processDownload = async (
 
       // Handle API-specific errors
       if (data.status === 'error') {
-        if (data.text && (data.text.includes('limit') || data.text.includes('found'))) {
-           console.warn(`API Error from ${api}:`, data.text);
-        }
         continue;
       }
 
     } catch (error) {
-      console.warn(`Connection failed to ${api}`, error);
       continue;
     }
   }
 
-  return { success: false, error: 'Servers are busy. Please try again or check the URL.' };
+  // ---------------------------------------------------------
+  // 2. FALLBACK: Try Own Backend (Flask)
+  // Only runs if all Cobalt instances fail.
+  // ---------------------------------------------------------
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 2000); 
+    
+    // In dev, Vite is on 5173, Backend on 5000. In Prod, same origin.
+    let apiUrl = '';
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if (isDev) {
+        apiUrl = 'http://localhost:5000';
+    }
+
+    const endpoint = apiUrl ? `${apiUrl}/health` : '/health';
+
+    const health = await fetch(endpoint, { signal: controller.signal });
+    clearTimeout(id);
+
+    if (health.ok) {
+      console.log('Cobalt failed, falling back to Python Backend');
+      const prefix = apiUrl || '';
+      const downloadUrl = `${prefix}/download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
+      return { success: true, url: downloadUrl };
+    }
+  } catch (_e) {
+    // Backend also failed
+  }
+
+  return { success: false, error: 'All download servers are busy. Please try again later.' };
 };
 
 export const downloadBlob = (url: string, filename: string) => {

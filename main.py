@@ -18,7 +18,6 @@ def serve_index():
     if os.path.exists(os.path.join(app.static_folder, 'index.html')):
         return send_from_directory(app.static_folder, 'index.html')
     
-    # Debugging: List contents of the current directory and dist directory
     try:
         current_dir_files = os.listdir(BASE_DIR)
         dist_files = os.listdir(DIST_DIR) if os.path.exists(DIST_DIR) else "dist directory missing"
@@ -40,16 +39,13 @@ def serve_assets(path):
 
 @app.route('/<path:path>')
 def catch_all(path):
-    # Support client-side routing
     if path.startswith('api') or path in ['health', 'download']:
         return "Not Found", 404
     
-    # Check if the path refers to a static file that exists
     full_path = os.path.join(app.static_folder, path)
     if os.path.exists(full_path) and os.path.isfile(full_path):
         return send_from_directory(app.static_folder, path)
 
-    # Fallback to index.html for SPA routing
     if os.path.exists(os.path.join(app.static_folder, 'index.html')):
         return send_from_directory(app.static_folder, 'index.html')
         
@@ -57,22 +53,19 @@ def catch_all(path):
 
 @app.route('/health', methods=['GET'])
 def health():
-    """Health check endpoint."""
     return jsonify({"status": "ok", "service": "pytube-downloader"})
 
 @app.route('/download', methods=['GET'])
 def download():
     url = request.args.get('url')
     type_ = request.args.get('type', 'video')
-    quality = request.args.get('quality', 'best') 
     
     if not url:
         return jsonify({"error": "Missing URL"}), 400
 
     try:
-        # Use pytubefix for better reliability
-        # client='WEB' is often more stable for age restricted content
-        yt = YouTube(url, client='WEB') 
+        # 'ANDROID' client is often more reliable on server IPs than 'WEB'
+        yt = YouTube(url, client='ANDROID', use_oauth=False, allow_oauth_cache=True) 
         
         if type_ == 'audio':
             stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
@@ -93,6 +86,7 @@ def download():
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
+            # stream.url is the direct googlevideo link
             with requests.get(stream.url, stream=True, headers=headers) as external_req:
                 external_req.raise_for_status()
                 for chunk in external_req.iter_content(chunk_size=8192):
