@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["python311", "nodejs_20", "npm"]
+
+[phases.install]
+cmds = ["npm install", "pip install -r requirements.txt"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "gunicorn main:app"
