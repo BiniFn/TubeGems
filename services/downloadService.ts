@@ -6,17 +6,17 @@ interface CobaltResponse {
 }
 
 // Extensive list of public Cobalt instances
+// Updated list with high-uptime instances
 const COBALT_INSTANCES = [
-  'https://co.wuk.sh/api/json',               
-  'https://api.wuk.sh/api/json',              
-  'https://cobalt.kwiatekmiki.pl/api/json',
-  'https://cobalt.steamodded.com/api/json',
-  'https://dl.khub.ky/api/json',
+  'https://api.cobalt.tools/api/json',       // Official
+  'https://cobalt.steamodded.com/api/json',  // Reliable
+  'https://dl.khub.ky/api/json',             // Reliable
   'https://api.succoon.com/api/json',
   'https://cobalt.rayrad.net/api/json',
   'https://cobalt.slpy.one/api/json',
   'https://cobalt.soapless.dev/api/json',
-  'https://api.cobalt.tools/api/json'
+  'https://api.wuk.sh/api/json',
+  'https://co.wuk.sh/api/json',
 ];
 
 export const processDownload = async (
@@ -26,6 +26,7 @@ export const processDownload = async (
 ): Promise<{ success: boolean; url?: string; error?: string }> => {
   
   // 1. PRIORITY: Cobalt API Mirrors (Client-Side)
+  // Map our quality to Cobalt quality
   const vQuality = quality === '1080p' ? '1080' : quality === '720p' ? '720' : '480';
   
   const body = {
@@ -33,17 +34,17 @@ export const processDownload = async (
     vQuality,
     isAudioOnly: type === 'audio',
     aFormat: type === 'audio' ? 'mp3' : undefined,
-    filenamePattern: 'classic'
+    filenamePattern: 'basic', // Changed to basic for better compatibility
   };
 
-  // Shuffle instances
+  // Shuffle instances to load balance
   const shuffled = [...COBALT_INSTANCES].sort(() => Math.random() - 0.5);
 
-  // Try up to 4 instances
-  for (const api of shuffled.slice(0, 4)) {
+  // Try up to 5 instances with slightly longer timeout
+  for (const api of shuffled.slice(0, 5)) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // Increased timeout
 
       const response = await fetch(api, {
         method: 'POST',
@@ -79,10 +80,11 @@ export const processDownload = async (
   try {
     const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     let apiUrl = isDev ? 'http://localhost:5000' : '';
+    // If we are in production (not localhost), apiUrl is empty string, meaning relative path.
 
     // Check health first to avoid waiting for a dead server
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 2000); 
+    const id = setTimeout(() => controller.abort(), 3000); 
     const health = await fetch(`${apiUrl}/health`, { signal: controller.signal });
     clearTimeout(id);
 
@@ -94,7 +96,7 @@ export const processDownload = async (
     console.warn("Backend fallback failed");
   }
 
-  return { success: false, error: 'Download servers are busy. Please try again in a moment.' };
+  return { success: false, error: 'All download servers are currently busy. Please try again or try a different video.' };
 };
 
 export const downloadBlob = (url: string, filename: string) => {

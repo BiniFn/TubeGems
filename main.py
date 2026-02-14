@@ -51,21 +51,17 @@ def download():
 
     try:
         # Configuration for yt-dlp
-        # We use the 'android' client to bypass "Sign in to confirm you're not a bot" errors
-        # which are common on data center IPs (like Render).
+        # Removed manual User-Agent to let yt-dlp manage it based on client
+        # Prioritize iOS client which is currently more stable for server IPs
         ydl_opts = {
             'quiet': True,
             'noplaylist': True,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android', 'web']
+                    'player_client': ['ios', 'android', 'web']
                 }
             },
             'format': 'best[ext=mp4]/best' if type_ == 'video' else 'bestaudio[ext=m4a]/bestaudio/best',
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-                'Accept-Language': 'en-US,en;q=0.9',
-            }
         }
 
         with YoutubeDL(ydl_opts) as ydl:
@@ -86,12 +82,13 @@ def download():
             # Prepare content type
             content_type = 'video/mp4' if type_ == 'video' else f'audio/{ext}'
 
-            # Get headers from info or default
-            req_headers = info.get('http_headers') or ydl_opts['http_headers']
+            # Get headers from info (needed for the stream to work)
+            req_headers = info.get('http_headers', {})
 
             # Generator to stream the content from YouTube to the client
             def generate():
                 try:
+                    # Stream with a decent chunk size
                     with requests.get(download_url, stream=True, headers=req_headers) as external_req:
                         external_req.raise_for_status()
                         for chunk in external_req.iter_content(chunk_size=16384):
@@ -113,7 +110,9 @@ def download():
         
         # Friendly error mapping
         if "Sign in" in error_msg:
-            return jsonify({"error": "YouTube blocked the server request. Please try the 'Cobalt' mirrors automatically provided by the UI."}), 403
+            return jsonify({
+                "error": "YouTube blocked the server request. Please try the 'Cobalt' mirrors automatically provided by the UI."
+            }), 403
             
         return jsonify({"error": error_msg}), 500
 
