@@ -2,10 +2,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AiAnalysisResult } from '../types';
 
 // Initialize the Gemini client
-// SECURITY NOTE: For public websites (GitHub/Cloudflare Pages), restrict this API Key
-// in the Google Cloud Console to your specific domain (e.g., mysite.pages.dev).
-// This prevents unauthorized usage even if the key is visible in the network tab.
-const ai = new GoogleGenAI({ apiKey: process.env.AIzaSyDXWXBZDkso_A6ju7MJmWQ89Cu6ejVtC4I });
+// The API Key is injected by Vite at build time via define: { 'process.env.API_KEY': ... }
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const analyzeVideoContext = async (title: string, author: string, description?: string): Promise<AiAnalysisResult> => {
   try {
