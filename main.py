@@ -17,8 +17,22 @@ CORS(app)
 def serve_index():
     if os.path.exists(os.path.join(app.static_folder, 'index.html')):
         return send_from_directory(app.static_folder, 'index.html')
-    # If index.html is missing, it implies the build step failed or hasn't run.
-    return "App is building or build failed. Please check deployment logs.", 503
+    
+    # Debugging: List contents of the current directory and dist directory
+    try:
+        current_dir_files = os.listdir(BASE_DIR)
+        dist_files = os.listdir(DIST_DIR) if os.path.exists(DIST_DIR) else "dist directory missing"
+    except Exception as e:
+        dist_files = str(e)
+        
+    debug_info = f"""
+    <h1>Deployment Error</h1>
+    <p>index.html not found in {app.static_folder}</p>
+    <p>Current Directory ({BASE_DIR}): {current_dir_files}</p>
+    <p>Dist Directory ({DIST_DIR}): {dist_files}</p>
+    <p>Please check if 'npm run build' executed successfully.</p>
+    """
+    return debug_info, 503
 
 @app.route('/assets/<path:path>')
 def serve_assets(path):
@@ -50,14 +64,14 @@ def health():
 def download():
     url = request.args.get('url')
     type_ = request.args.get('type', 'video')
-    quality = request.args.get('quality', 'best') # Not strictly used by pytube stream filter but good for logging
+    quality = request.args.get('quality', 'best') 
     
     if not url:
         return jsonify({"error": "Missing URL"}), 400
 
     try:
         # Use pytubefix for better reliability
-        # We need to ensure client is set if required, but default usually works for public videos
+        # client='WEB' is often more stable for age restricted content
         yt = YouTube(url, client='WEB') 
         
         if type_ == 'audio':
@@ -65,8 +79,6 @@ def download():
             ext = 'mp3'
             content_type = 'audio/mpeg'
         else:
-            # Try to get 720p/360p progressive (video+audio)
-            # Pytube's progressive streams are limited to 720p usually.
             stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
             ext = 'mp4'
             content_type = 'video/mp4'
@@ -74,13 +86,10 @@ def download():
         if not stream:
             return jsonify({"error": "No suitable stream found"}), 404
 
-        # Clean filename
         safe_title = re.sub(r'[\\/*?:"<>|]', "", yt.title)
         filename = f"{safe_title}.{ext}"
 
-        # Stream generator
         def generate():
-            # Increase timeout and add headers to mimic browser
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
@@ -99,7 +108,6 @@ def download():
 
     except Exception as e:
         print(f"Error: {str(e)}")
-        # If pytube fails, client side will fallback to Cobalt
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':

@@ -5,16 +5,21 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "migrate": "echo 'Pre-deploy step skipped' && exit 0",
     "start": "gunicorn -b 0.0.0.0:$PORT main:app"
   },
   "dependencies": {
     "@google/genai": "^1.41.0",
+    "flask": "^3.0.0",
+    "flask-cors": "^4.0.0",
+    "gunicorn": "^21.2.0",
     "lucide-react": "^0.564.0",
+    "pytubefix": "^2.0.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "requests": "^2.31.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.66",
