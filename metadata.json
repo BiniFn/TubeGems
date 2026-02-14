@@ -1,0 +1,5 @@
+{
+  "name": "TubeGems - AI Video Companion",
+  "description": "A YouTube video analyzer and downloader utility powered by Gemini AI. Get insights, summaries, and format options for your favorite videos.",
+  "requestFramePermissions": []
+}
