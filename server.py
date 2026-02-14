@@ -1,6 +1,6 @@
 from flask import Flask, request, Response, stream_with_context, jsonify
 from flask_cors import CORS
-from pytube import YouTube
+from pytubefix import YouTube
 import requests
 import re
 import os
@@ -22,6 +22,7 @@ def download():
         return jsonify({"error": "Missing URL"}), 400
 
     try:
+        # Use pytubefix for better reliability
         yt = YouTube(url)
         
         # Select the best stream based on type
@@ -29,18 +30,22 @@ def download():
             # Get audio only
             stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
             filename = f"{yt.title}.mp3"
+            content_type = 'audio/mpeg'
         else:
             # Get progressive stream (video + audio in one file)
-            # Pytube progressive streams usually top out at 720p. 
-            # 1080p requires ffmpeg merging which is complex for a simple script.
             stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
             filename = f"{yt.title}.mp4"
+            content_type = 'video/mp4'
 
         if not stream:
             return jsonify({"error": "No suitable stream found"}), 404
 
         # Sanitize filename
         filename = re.sub(r'[\\/*?:"<>|]', "", filename)
+        # Ensure extension exists
+        if not filename.endswith(('.mp4', '.mp3')):
+             ext = 'mp3' if type_ == 'audio' else 'mp4'
+             filename = f"{filename}.{ext}"
 
         # Stream the data from YouTube's URL to the client
         # This acts as a proxy to avoid CORS issues in the browser
@@ -52,7 +57,7 @@ def download():
         # Set headers to force download in browser
         headers = {
             'Content-Disposition': f'attachment; filename="{filename}"',
-            'Content-Type': 'audio/mpeg' if type_ == 'audio' else 'video/mp4'
+            'Content-Type': content_type
         }
 
         return Response(stream_with_context(generate()), headers=headers)
