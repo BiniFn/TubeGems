@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/BiniFn/TubeGems/main/assets/banner.png" alt="TubeGems Banner" width="100%">
-</p>
-
 <h1 align="center">💎 TubeGems</h1>
 
 <p align="center">
