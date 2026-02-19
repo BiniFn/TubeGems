@@ -57,11 +57,13 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
       const result = await processDownload(metadata.url, activeTab as 'video' | 'audio', item.quality);
       
       if (result.success && result.url) {
-        // Direct safe link
+        const safeTitle = metadata.title.replace(/[\\/*?:"<>|]/g, '').trim().slice(0, 60) || 'download';
+        const extension = activeTab === 'audio' ? 'mp3' : 'mp4';
+
+        // Trigger a real file download (avoid popup blockers from target=_blank)
         const link = document.createElement('a');
         link.href = result.url;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
+        link.download = `${safeTitle}.${extension}`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
