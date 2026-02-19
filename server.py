@@ -1,6 +1,6 @@
 from flask import Flask, request, Response, stream_with_context, jsonify
 from flask_cors import CORS
-from pytubefix import YouTube
+from pytube import YouTube
 import requests
 import re
 import os
@@ -23,7 +23,7 @@ def download():
         return jsonify({"error": "Missing URL"}), 400
 
     try:
-        # Use pytubefix for better reliability
+        # Use pytube as fallback stream extractor
         yt = YouTube(url)
         
         # Select the best stream based on type
