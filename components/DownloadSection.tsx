@@ -94,9 +94,9 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
   };
 
   return (
-    <div className="bg-gray-900/60 rounded-3xl border border-white/10 shadow-xl overflow-hidden backdrop-blur-md flex flex-col h-full min-h-[400px]">
+    <div className="bg-gray-900/60 rounded-3xl border border-white/10 shadow-xl overflow-hidden backdrop-blur-md flex flex-col h-full min-h-[320px] md:min-h-[400px]">
       {/* Header */}
-      <div className="p-6 border-b border-white/5 space-y-4">
+      <div className="p-4 md:p-6 border-b border-white/5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
             <Download className="w-5 h-5 text-red-500" />
@@ -107,12 +107,12 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
           </span>
         </div>
         
-        <div className="flex p-1 bg-black/40 rounded-xl border border-white/5 backdrop-blur-md">
+        <div className="flex p-1 bg-black/40 rounded-xl border border-white/5 backdrop-blur-md gap-1">
           {(['video', 'audio', 'thumbnail'] as TabType[]).map((tab) => (
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); setError(null); }}
-              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 capitalize flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2.5 text-xs sm:text-sm font-semibold rounded-lg transition-colors duration-200 capitalize flex items-center justify-center gap-1 sm:gap-2 ${
                 activeTab === tab 
                   ? 'bg-gradient-to-br from-red-600 to-red-500 text-white shadow-lg shadow-red-500/25' 
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -128,7 +128,7 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
       </div>
 
       {/* List */}
-      <div className="p-2 flex-1 overflow-y-auto custom-scrollbar relative">
+      <div className="p-2 md:p-3 flex-1 overflow-y-auto custom-scrollbar relative">
         {error && (
             <div className="mx-4 mt-2 mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 text-red-200 text-sm">
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
@@ -140,21 +140,21 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
           {downloadFormats[activeTab].map((item, index) => (
             <div 
               key={index}
-              className="group flex items-center justify-between p-4 hover:bg-white/5 rounded-xl transition-all duration-200 border border-transparent hover:border-white/5"
+              className="group flex items-center justify-between gap-3 p-3 md:p-4 hover:bg-white/5 rounded-xl transition-colors duration-200 border border-transparent hover:border-white/5"
             >
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+              <div className="flex items-center gap-2 md:gap-4 min-w-0">
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center transition-colors duration-200 shrink-0 ${
                   activeTab === 'audio' ? 'bg-purple-500/10 text-purple-400 group-hover:bg-purple-500/20' : 
                   activeTab === 'thumbnail' ? 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20' : 
                   'bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20'
                 }`}>
-                  <item.icon className="w-6 h-6" />
+                  <item.icon className="w-5 h-5 md:w-6 md:h-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-white font-bold text-lg">{item.label}</span>
+                    <span className="text-white font-bold text-base md:text-lg">{item.label}</span>
                   </div>
-                  <div className="text-sm text-gray-500">{item.sub}</div>
+                  <div className="text-xs md:text-sm text-gray-500">{item.sub}</div>
                 </div>
               </div>
 
@@ -162,10 +162,10 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
                 onClick={() => handleDownload(item)}
                 disabled={!!processing}
                 className={`
-                  relative px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all duration-300 min-w-[120px] justify-center overflow-hidden shadow-lg
+                  relative px-4 md:px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all duration-200 min-w-[96px] md:min-w-[120px] justify-center overflow-hidden shadow-lg shrink-0
                   ${processing === item.label 
                     ? 'bg-white/5 text-gray-400 cursor-wait' 
-                    : 'bg-white text-black hover:bg-gray-200 hover:scale-105 active:scale-95'
+                    : 'bg-white text-black hover:bg-gray-200 active:scale-95'
                   }
                 `}
               >
