@@ -1,6 +1,9 @@
 from flask import Flask, request, Response, stream_with_context, jsonify
 from flask_cors import CORS
-from pytube import YouTube
+try:
+    from pytube import YouTube
+except Exception:
+    YouTube = None
 import requests
 import re
 import os
@@ -21,6 +24,9 @@ def download():
     
     if not url:
         return jsonify({"error": "Missing URL"}), 400
+
+    if YouTube is None:
+        return jsonify({"error": "pytube is not installed on server."}), 503
 
     try:
         # Use pytube as fallback stream extractor
