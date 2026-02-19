@@ -60,6 +60,7 @@ def stream_proxy(url, headers=None):
 def download():
     url = request.args.get('url')
     type_ = request.args.get('type', 'video')
+    quality = request.args.get('quality', '1080p')
     
     if not url:
         return jsonify({"error": "Missing URL"}), 400
@@ -67,6 +68,9 @@ def download():
     # 1. Try yt-dlp first
     try:
         print(f"Attempting yt-dlp for {url}")
+        quality_map = {'1080p': '1080', '720p': '720', '480p': '480'}
+        max_height = quality_map.get(quality, '1080')
+
         ydl_opts = {
             'quiet': True,
             'noplaylist': True,
@@ -75,7 +79,11 @@ def download():
                     'player_client': ['ios', 'android', 'web']
                 }
             },
-            'format': 'best[ext=mp4]/best' if type_ == 'video' else 'bestaudio[ext=m4a]/bestaudio/best',
+            'format': (
+                f"bestvideo[ext=mp4][height<={max_height}]+bestaudio[ext=m4a]/best[ext=mp4][height<={max_height}]/best"
+                if type_ == 'video'
+                else 'bestaudio[ext=m4a]/bestaudio'
+            ),
         }
 
         with YoutubeDL(ydl_opts) as ydl:
@@ -84,9 +92,10 @@ def download():
             
             if download_url:
                 title = info.get('title', 'video')
-                ext = info.get('ext', 'mp4')
-                filename = f"{sanitize_filename(title)}.{ext}"
-                content_type = 'video/mp4' if type_ == 'video' else f'audio/{ext}'
+                ext = info.get('ext', 'mp4' if type_ == 'video' else 'm4a')
+                filename_ext = 'mp4' if type_ == 'video' else 'mp3'
+                filename = f"{sanitize_filename(title)}.{filename_ext}"
+                content_type = 'video/mp4' if type_ == 'video' else 'audio/mpeg'
                 req_headers = info.get('http_headers', {})
 
                 resp_headers = {
@@ -105,8 +114,8 @@ def download():
         yt = YouTube(url, on_progress_callback=on_progress)
         
         if type_ == 'audio':
-            stream = yt.streams.get_audio_only()
-            ext = 'mp3' 
+            stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
+            ext = 'mp3'
             content_type = 'audio/mpeg'
         else:
             stream = yt.streams.get_highest_resolution()

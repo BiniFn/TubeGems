@@ -17,6 +17,7 @@ def health():
 def download():
     url = request.args.get('url')
     type_ = request.args.get('type', 'video')
+    quality = request.args.get('quality', '1080p')
     
     if not url:
         return jsonify({"error": "Missing URL"}), 400
@@ -32,8 +33,13 @@ def download():
             filename = f"{yt.title}.mp3"
             content_type = 'audio/mpeg'
         else:
-            # Get progressive stream (video + audio in one file)
-            stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
+            # Respect requested quality where possible; fallback to best progressive mp4
+            target = quality.replace('p', '') if quality else None
+            stream = None
+            if target:
+                stream = yt.streams.filter(progressive=True, file_extension='mp4', res=f"{target}p").first()
+            if not stream:
+                stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
             filename = f"{yt.title}.mp4"
             content_type = 'video/mp4'
 
@@ -50,7 +56,7 @@ def download():
         # Stream the data from YouTube's URL to the client
         # This acts as a proxy to avoid CORS issues in the browser
         def generate():
-            external_req = requests.get(stream.url, stream=True)
+            external_req = requests.get(stream.url, stream=True, timeout=30)
             for chunk in external_req.iter_content(chunk_size=4096):
                 yield chunk
 

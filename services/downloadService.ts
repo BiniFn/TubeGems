@@ -23,8 +23,25 @@ export const processDownload = async (
   type: 'video' | 'audio', 
   quality: string
 ): Promise<{ success: boolean; url?: string; error?: string }> => {
+  // 1. PRIORITY: Local backend when available (most stable + avoids popup/CORS issues)
+  try {
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiUrl = isDev ? 'http://localhost:5000' : '';
+
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 3000);
+    const health = await fetch(`${apiUrl}/health`, { signal: controller.signal });
+    clearTimeout(id);
+
+    if (health.ok) {
+      const downloadUrl = `${apiUrl}/download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
+      return { success: true, url: downloadUrl };
+    }
+  } catch (_e) {
+    console.warn('Backend not reachable, trying public mirrors...');
+  }
   
-  // 1. PRIORITY: Cobalt API Mirrors (Client-Side)
+  // 2. FALLBACK: Cobalt API Mirrors (Client-Side)
   // Map our quality to Cobalt quality
   const vQuality = quality === '1080p' ? '1080' : quality === '720p' ? '720' : '480';
   
@@ -73,26 +90,6 @@ export const processDownload = async (
     } catch (error) {
       continue;
     }
-  }
-
-  // 2. FALLBACK: Python Backend (yt-dlp + pytubefix)
-  try {
-    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    let apiUrl = isDev ? 'http://localhost:5000' : '';
-    
-    // Check health first 
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 3000); 
-    const health = await fetch(`${apiUrl}/health`, { signal: controller.signal });
-    clearTimeout(id);
-
-    if (health.ok) {
-      const downloadUrl = `${apiUrl}/download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
-      // Just return the URL, the browser will handle the stream download
-      return { success: true, url: downloadUrl };
-    }
-  } catch (_e) {
-    console.warn("Backend fallback failed or unreachable");
   }
 
   return { success: false, error: 'All download servers are busy. Please try another video or check back later.' };
