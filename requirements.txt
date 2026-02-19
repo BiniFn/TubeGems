@@ -3,4 +3,4 @@ flask-cors
 yt-dlp
 requests
 gunicorn
-pytubefix
+pytube

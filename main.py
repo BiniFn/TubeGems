@@ -1,8 +1,8 @@
 from flask import Flask, request, Response, stream_with_context, jsonify, send_from_directory
 from flask_cors import CORS
 from yt_dlp import YoutubeDL
-from pytubefix import YouTube
-from pytubefix.cli import on_progress
+from pytube import YouTube
+from pytube.cli import on_progress
 import requests
 import re
 import os
@@ -108,9 +108,9 @@ def download():
         print(f"yt-dlp failed: {e}")
         # Continue to fallback
 
-    # 2. Fallback to pytubefix
+    # 2. Fallback to pytube
     try:
-        print(f"Attempting pytubefix fallback for {url}")
+        print(f"Attempting pytube fallback for {url}")
         yt = YouTube(url, on_progress_callback=on_progress)
         
         if type_ == 'audio':
