@@ -13,9 +13,24 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [videoData, setVideoData] = useState<VideoMetadata | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<AiAnalysisResult | null>(null);
+  const [isAiEnabled, setIsAiEnabled] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Force remount of UrlInput to clear text on reset if needed
-  const [key, setKey] = useState(0); 
+  const [key, setKey] = useState(0);
+
+  const runAiAnalysis = async (metadata: VideoMetadata) => {
+    setIsAiLoading(true);
+    try {
+      const analysis = await analyzeVideoContext(
+        metadata.title,
+        metadata.author_name,
+        metadata.description
+      );
+      setAiAnalysis(analysis);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   const handleSearch = async (url: string) => {
     setIsLoading(true);
@@ -24,18 +39,12 @@ const App: React.FC = () => {
     setAiAnalysis(null);
 
     try {
-      // 1. Fetch Metadata (including description via proxy)
       const metadata = await fetchVideoMetadata(url);
       setVideoData(metadata);
 
-      // 2. Fetch AI Analysis with the new rich context
-      const analysis = await analyzeVideoContext(
-        metadata.title, 
-        metadata.author_name,
-        metadata.description
-      );
-      setAiAnalysis(analysis);
-
+      if (isAiEnabled) {
+        await runAiAnalysis(metadata);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
@@ -43,68 +52,92 @@ const App: React.FC = () => {
     }
   };
 
+  const handleToggleAi = async () => {
+    setError(null);
+    setIsAiEnabled((prev) => !prev);
+
+    if (!isAiEnabled && videoData && !aiAnalysis) {
+      await runAiAnalysis(videoData);
+    }
+  };
+
   const handleReset = () => {
     setVideoData(null);
     setAiAnalysis(null);
     setError(null);
-    setKey(prev => prev + 1); // Reset UrlInput state
+    setIsAiLoading(false);
+    setKey((prev) => prev + 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <div className="min-h-screen bg-[#0f0f12] text-white selection:bg-red-500/30 selection:text-red-200">
       <Header onReset={handleReset} />
-      
-      <main className="pb-20">
+
+      <main className="pb-12 md:pb-20 px-2 sm:px-0">
         {!videoData && (
-           <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-             <UrlInput key={key} onSearch={handleSearch} isLoading={isLoading} />
-           </div>
+          <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+            <UrlInput key={key} onSearch={handleSearch} isLoading={isLoading} isAiEnabled={isAiEnabled} onToggleAi={handleToggleAi} />
+          </div>
         )}
 
         {error && (
-          <div className="max-w-2xl mx-auto mt-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-200 animate-in fade-in slide-in-from-bottom-4">
+          <div className="max-w-2xl mx-auto mt-6 md:mt-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-200 animate-in fade-in slide-in-from-bottom-4">
             <AlertCircle className="w-5 h-5 shrink-0" />
             <p>{error}</p>
           </div>
         )}
 
         {videoData && (
-          <div className="max-w-6xl mx-auto mt-8 px-4 md:px-8 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
-            
-            <button 
-              onClick={handleReset}
-              className="group flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 text-sm font-medium text-gray-400 hover:text-white transition-all duration-300 border border-white/5 hover:border-white/10"
-            >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Search Another Video
-            </button>
+          <div className="max-w-6xl mx-auto mt-6 md:mt-8 px-3 md:px-8 space-y-5 md:space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-500">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <button
+                onClick={handleReset}
+                className="group flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 text-sm font-medium text-gray-300 hover:text-white transition-all duration-200 border border-white/5 hover:border-white/10"
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                Search Another Video
+              </button>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Left Column: Preview & Download */}
-              <div className="lg:col-span-1 space-y-8">
+              <button
+                onClick={handleToggleAi}
+                disabled={isAiLoading}
+                className={`px-4 py-2 rounded-full text-sm font-semibold border transition-colors duration-200 ${
+                  isAiEnabled
+                    ? 'bg-indigo-500/15 text-indigo-200 border-indigo-400/30'
+                    : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10'
+                } ${isAiLoading ? 'opacity-70 cursor-wait' : ''}`}
+              >
+                {isAiLoading ? 'Loading AI…' : `AI Summary: ${isAiEnabled ? 'On' : 'Off'}`}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+              <div className="lg:col-span-1 space-y-4 md:space-y-6">
                 <VideoPreview metadata={videoData} />
                 <DownloadSection metadata={videoData} />
               </div>
 
-              {/* Right Column: AI Analysis */}
               <div className="lg:col-span-2">
-                 {aiAnalysis ? (
-                   <AiInsights analysis={aiAnalysis} isLoading={false} />
-                 ) : (
-                   <AiInsights 
-                     analysis={{ summary: '', topics: [], suggestedQuestions: [] }} 
-                     isLoading={true} 
-                   />
-                 )}
+                {isAiEnabled ? (
+                  <AiInsights
+                    analysis={aiAnalysis ?? { summary: '', topics: [], suggestedQuestions: [] }}
+                    isLoading={isAiLoading || !aiAnalysis}
+                  />
+                ) : (
+                  <div className="bg-gray-900/50 rounded-3xl border border-white/10 min-h-[220px] md:min-h-[320px] p-6 md:p-8 flex items-center justify-center text-center">
+                    <p className="text-gray-300 max-w-md">
+                      AI summaries are currently turned off to keep things faster. Tap the <span className="text-indigo-300 font-semibold">AI Summary</span> toggle to generate one.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-
           </div>
         )}
       </main>
-      
-      <footer className="py-8 text-center text-gray-600 text-sm border-t border-white/5 mt-auto bg-[#0a0a0c]">
+
+      <footer className="py-6 md:py-8 text-center text-gray-600 text-xs md:text-sm border-t border-white/5 mt-auto bg-[#0a0a0c] px-4">
         <p>© 2026 TubeGems By BiniFn</p>
       </footer>
     </div>
