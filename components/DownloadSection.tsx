@@ -59,14 +59,29 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
       if (result.success && result.url) {
         const safeTitle = metadata.title.replace(/[\\/*?:"<>|]/g, '').trim().slice(0, 60) || 'download';
         const extension = activeTab === 'audio' ? 'mp3' : 'mp4';
+        const filename = `${safeTitle}.${extension}`;
 
-        // Trigger a real file download (avoid popup blockers from target=_blank)
-        const link = document.createElement('a');
-        link.href = result.url;
-        link.download = `${safeTitle}.${extension}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const resolvedUrl = new URL(result.url, window.location.href);
+        const isSameOrigin = resolvedUrl.origin === window.location.origin;
+
+        // Same-origin URL (our backend): stream directly for better large-file performance.
+        if (isSameOrigin) {
+          const link = document.createElement('a');
+          link.href = result.url;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } else {
+          // Third-party temporary URLs can fail/resume poorly. Fetch as Blob first for reliability.
+          const response = await fetch(result.url);
+          if (!response.ok) throw new Error('Mirror download is temporarily unavailable');
+
+          const blob = await response.blob();
+          const blobUrl = window.URL.createObjectURL(blob);
+          downloadBlob(blobUrl, filename);
+          window.URL.revokeObjectURL(blobUrl);
+        }
       } else {
         setError(result.error || 'Failed to generate link');
       }

@@ -18,28 +18,81 @@ const COBALT_INSTANCES = [
   'https://api.cobalt.tools/api/json', 
 ];
 
+let cachedBackendState: { available: boolean; checkedAt: number } | null = null;
+const BACKEND_CACHE_TTL_MS = 30_000;
+
+const isBackendAvailable = async (apiUrl: string): Promise<boolean> => {
+  const now = Date.now();
+  if (cachedBackendState && now - cachedBackendState.checkedAt < BACKEND_CACHE_TTL_MS) {
+    return cachedBackendState.available;
+  }
+
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 1500);
+    const health = await fetch(`${apiUrl}/health`, { signal: controller.signal });
+    clearTimeout(id);
+
+    const available = health.ok;
+    cachedBackendState = { available, checkedAt: now };
+    return available;
+  } catch (_err) {
+    cachedBackendState = { available: false, checkedAt: now };
+    return false;
+  }
+};
+
+const fetchFromCobalt = async (api: string, body: Record<string, unknown>): Promise<string | null> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch(api, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body),
+      referrerPolicy: 'no-referrer',
+      signal: controller.signal
+    });
+
+    if (!response.ok) return null;
+
+    const data: CobaltResponse = await response.json();
+    if ((data.status === 'stream' || data.status === 'redirect') && data.url) {
+      return data.url;
+    }
+
+    if (data.status === 'picker' && data.picker && data.picker.length > 0) {
+      return data.picker[0].url;
+    }
+
+    return null;
+  } catch (_err) {
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 export const processDownload = async (
   url: string, 
   type: 'video' | 'audio', 
   quality: string
 ): Promise<{ success: boolean; url?: string; error?: string }> => {
-  // 1. PRIORITY: Local backend when available (most stable + avoids popup/CORS issues)
-  try {
-    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDev ? 'http://localhost:5000' : '';
+  const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const apiUrl = isDev ? 'http://localhost:5000' : '';
 
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 3000);
-    const health = await fetch(`${apiUrl}/health`, { signal: controller.signal });
-    clearTimeout(id);
-
-    if (health.ok) {
-      const downloadUrl = `${apiUrl}/download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
-      return { success: true, url: downloadUrl };
-    }
-  } catch (_e) {
-    console.warn('Backend not reachable, trying public mirrors...');
+  // 1. PRIORITY: Local backend when available (most stable + avoids temporary third-party links)
+  const backendAvailable = await isBackendAvailable(apiUrl);
+  if (backendAvailable) {
+    const downloadUrl = `${apiUrl}/download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
+    return { success: true, url: downloadUrl };
   }
+
+  console.warn('Backend not reachable, trying public mirrors...');
   
   // 2. FALLBACK: Cobalt API Mirrors (Client-Side)
   // Map our quality to Cobalt quality
@@ -56,39 +109,25 @@ export const processDownload = async (
   // Shuffle instances to load balance
   const shuffled = [...COBALT_INSTANCES].sort(() => Math.random() - 0.5);
 
-  // Try up to 6 instances 
-  for (const api of shuffled.slice(0, 6)) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+  // 2a. Try 3 mirrors in parallel first to reduce waiting/lag.
+  const firstWave = shuffled.slice(0, 3);
+  const winner = await Promise.any(
+    firstWave.map(async (api) => {
+      const candidate = await fetchFromCobalt(api, body);
+      if (!candidate) throw new Error('No media URL');
+      return candidate;
+    })
+  ).catch(() => null);
 
-      const response = await fetch(api, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body),
-        referrerPolicy: 'no-referrer',
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
+  if (winner) {
+    return { success: true, url: winner };
+  }
 
-      if (!response.ok) continue;
-
-      const data: CobaltResponse = await response.json();
-
-      if (data.status === 'stream' || data.status === 'redirect') {
-        return { success: true, url: data.url };
-      }
-      
-      if (data.status === 'picker' && data.picker && data.picker.length > 0) {
-        return { success: true, url: data.picker[0].url };
-      }
-
-    } catch (error) {
-      continue;
+  // 2b. Fallback through remaining mirrors.
+  for (const api of shuffled.slice(3, 6)) {
+    const candidate = await fetchFromCobalt(api, body);
+    if (candidate) {
+      return { success: true, url: candidate };
     }
   }
 
