@@ -12,4 +12,4 @@ cmds = ["npm install", "pip install -r requirements.txt"]
 cmds = ["npm run build"]
 
 [start]
-cmd = "gunicorn main:app"
+cmd = "gunicorn -b 0.0.0.0:${PORT:-5000} main:app"
