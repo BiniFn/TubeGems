@@ -1,7 +1,8 @@
 <h1 align="center">💎 TubeGems</h1>
 
 <p align="center">
-<strong>The ultimate AI-powered YouTube intelligence toolkit. Summarize, extract, and archive in seconds.</strong>
+<strong>The ultimate AI-powered YouTube intelligence toolkit. Summarize, extract, and archive in seconds.
+Made With ❤️ By BiniFn</strong>
 </p>
 
 <p align="center">
