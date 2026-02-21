@@ -113,25 +113,19 @@ const App: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
-              <div className="lg:col-span-1 space-y-4 md:space-y-6">
+              <div className={`${isAiEnabled ? 'lg:col-span-1' : 'lg:col-span-3'} space-y-4 md:space-y-6`}>
                 <VideoPreview metadata={videoData} />
                 <DownloadSection metadata={videoData} />
               </div>
 
-              <div className="lg:col-span-2">
-                {isAiEnabled ? (
+              {isAiEnabled && (
+                <div className="lg:col-span-2">
                   <AiInsights
                     analysis={aiAnalysis ?? { summary: '', topics: [], suggestedQuestions: [] }}
                     isLoading={isAiLoading || !aiAnalysis}
                   />
-                ) : (
-                  <div className="bg-gray-900/50 rounded-3xl border border-white/10 min-h-[220px] md:min-h-[320px] p-6 md:p-8 flex items-center justify-center text-center">
-                    <p className="text-gray-300 max-w-md">
-                      AI summaries are currently turned off to keep things faster. Tap the <span className="text-indigo-300 font-semibold">AI Summary</span> toggle to generate one.
-                    </p>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         )}
