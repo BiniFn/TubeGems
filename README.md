@@ -15,7 +15,7 @@
 <img src="https://img.shields.io/github/forks/BiniFn/TubeGems?style=for-the-badge&logo=github&color=6e5494" alt="Forks">
 </a>
 <a href="https://github.com/BiniFn/TubeGems/blob/main/LICENSE">
-<img src="https://img.shields.io/github/license/BiniFn/TubeGems?style=for-the-badge&logo=apache&color=D22128" alt="License">
+  <img src="https://img.shields.io/badge/License-Apache--2.0-D22128?style=for-the-badge&logo=apache" alt="Apache-2.0 License">
 </a>
 </p>
 
