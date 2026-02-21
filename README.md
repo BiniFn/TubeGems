@@ -2,7 +2,7 @@
 
 <p align="center">
 <strong>The ultimate AI-powered YouTube intelligence toolkit. Summarize, extract, and archive in seconds.
-Made With ❤️ By BiniFn</strong>
+------> Made With ❤️ By BiniFn <-------</strong>
 </p>
 
 <p align="center">
