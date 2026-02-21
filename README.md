@@ -4,7 +4,7 @@
 <div align="center">
   <strong>The ultimate AI-powered YouTube intelligence toolkit. Summarize, extract, and archive in seconds.</strong>
   <br><br>
-  <strong>------> Made With ❤️ By BiniFn <-------</strong>
+  <strong>------> Made With ❤️ By BiniFn <------</strong>
 </div>
 
 <p align="center">
