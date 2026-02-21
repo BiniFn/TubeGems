@@ -76,6 +76,7 @@ def download():
     url = request.args.get('url')
     type_ = request.args.get('type', 'video')
     quality = request.args.get('quality', '1080p')
+    probe = request.args.get('probe') == '1'
     
     if not url:
         return jsonify({"error": "Missing URL"}), 400
@@ -106,6 +107,14 @@ def download():
                 ext = info.get('ext', 'mp4' if type_ == 'video' else 'm4a')
                 filename_ext = 'mp4' if type_ == 'video' else ext
                 filename = f"{sanitize_filename(title)}.{filename_ext}"
+
+                if probe:
+                    return jsonify({
+                        "ok": True,
+                        "filename": filename,
+                        "ext": filename_ext,
+                    })
+
                 if type_ == 'video':
                     content_type = 'video/mp4'
                 else:
