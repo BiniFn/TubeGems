@@ -41,7 +41,7 @@
 * **Frontend**: [React.js](https://reactjs.org/) with **TypeScript** (TSX) for robust type-safety.
 * **Styling**: **Tailwind CSS** using a modern glassmorphism design language.
 * **Backend**: **Node.js** & **Express** for handling high-concurrency requests.
-* **Media Engine**: Integrated with **ytdl-core** and **FFmpeg** for seamless media manipulation.
+* **Media Engine**: Integrated with **yt-dlp** and **FFmpeg** for resilient media extraction and processing.
 * **AI Integration**: RESTful communication with OpenAI (GPT-4) or Anthropic (Claude) API.
 
 ---
@@ -102,7 +102,7 @@ npm start
 ### ⚠️ Known Issues
 
 * **Downloader Stability**: Due to frequent updates to YouTube's infrastructure, the video download and audio extraction features may occasionally fail.
-* **Status**: Currently, the **Thumbnail Extractor** and **AI Summarizer** are fully functional. We are investigating updates to the `ytdl` core to resolve download stream issues.
+* **Status**: Currently, the **Thumbnail Extractor** and **AI Summarizer** are fully functional. We use the actively maintained `yt-dlp` extractor stack to keep download support stable as YouTube changes.
 
 ---
 

@@ -1,12 +1,6 @@
 from flask import Flask, request, Response, stream_with_context, jsonify, send_from_directory
 from flask_cors import CORS
 from yt_dlp import YoutubeDL
-try:
-    from pytube import YouTube
-    from pytube.cli import on_progress
-except Exception:
-    YouTube = None
-    on_progress = None
 import requests
 import re
 import os
@@ -86,7 +80,8 @@ def download():
     if not url:
         return jsonify({"error": "Missing URL"}), 400
 
-    # 1. Try yt-dlp first
+    # Use yt-dlp metadata extraction from the official project:
+    # https://github.com/yt-dlp/yt-dlp
     try:
         print(f"Attempting yt-dlp for {url}")
         quality_map = {'1080p': '1080', '720p': '720', '480p': '480'}
@@ -95,15 +90,10 @@ def download():
         ydl_opts = {
             'quiet': True,
             'noplaylist': True,
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['ios', 'android', 'web']
-                }
-            },
             'format': (
-                f"bestvideo[ext=mp4][height<={max_height}]+bestaudio[ext=m4a]/best[ext=mp4][height<={max_height}]/best"
+                f"best[ext=mp4][height<={max_height}]/best[height<={max_height}]"
                 if type_ == 'video'
-                else 'bestaudio[ext=m4a]/bestaudio'
+                else 'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio'
             ),
         }
 
@@ -114,9 +104,12 @@ def download():
             if download_url:
                 title = info.get('title', 'video')
                 ext = info.get('ext', 'mp4' if type_ == 'video' else 'm4a')
-                filename_ext = 'mp4' if type_ == 'video' else 'mp3'
+                filename_ext = 'mp4' if type_ == 'video' else ext
                 filename = f"{sanitize_filename(title)}.{filename_ext}"
-                content_type = 'video/mp4' if type_ == 'video' else 'audio/mpeg'
+                if type_ == 'video':
+                    content_type = 'video/mp4'
+                else:
+                    content_type = 'audio/webm' if ext == 'webm' else 'audio/mp4'
                 req_headers = info.get('http_headers', {})
 
                 resp_headers = {
@@ -124,50 +117,17 @@ def download():
                     'Content-Type': content_type
                 }
                 return Response(stream_with_context(stream_proxy(download_url, req_headers)), headers=resp_headers)
+            
+            return jsonify({"error": "yt-dlp did not return a downloadable media URL."}), 502
     
     except Exception as e:
         print(f"yt-dlp failed: {e}")
-        # Continue to fallback
-
-    # 2. Fallback to pytube (if available in runtime)
-    if YouTube is None:
-        return jsonify({"error": "Download fallback unavailable: pytube is not installed on server."}), 503
-
-    try:
-        print(f"Attempting pytube fallback for {url}")
-        yt = YouTube(url, on_progress_callback=on_progress)
-        
-        if type_ == 'audio':
-            stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
-            ext = 'mp3'
-            content_type = 'audio/mpeg'
-        else:
-            stream = yt.streams.get_highest_resolution()
-            ext = 'mp4'
-            content_type = 'video/mp4'
-            
-        if not stream:
-            raise Exception("No stream found via pytube")
-
-        filename = f"{sanitize_filename(yt.title)}.{ext}"
-        
-        # Pytube's stream.url is the direct googlevideo link
-        resp_headers = {
-            'Content-Disposition': f'attachment; filename="{filename}"',
-            'Content-Type': content_type
-        }
-        
-        return Response(stream_with_context(stream_proxy(stream.url)), headers=resp_headers)
-
-    except Exception as e:
         error_msg = str(e)
-        print(f"All methods failed. Final error: {error_msg}")
-        
         if "Sign in" in error_msg or "403" in error_msg:
-             return jsonify({
+            return jsonify({
                 "error": "Server is currently blocked by YouTube. Please use the 'Cobalt' option or try again later."
             }), 403
-            
+
         return jsonify({"error": error_msg}), 500
 
 if __name__ == '__main__':
