@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { Header } from './components/Header';
 import { UrlInput } from './components/UrlInput';
 import { VideoPreview } from './components/VideoPreview';
-import { AiInsights } from './components/AiInsights';
 import { DownloadSection } from './components/DownloadSection';
 import { fetchVideoMetadata } from './services/youtubeService';
-import { analyzeVideoContext } from './services/geminiService';
 import { VideoMetadata, AiAnalysisResult } from './types';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
+
+const AiInsights = React.lazy(() => import('./components/AiInsights').then((module) => ({ default: module.AiInsights })));
 
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -21,6 +21,7 @@ const App: React.FC = () => {
   const runAiAnalysis = async (metadata: VideoMetadata) => {
     setIsAiLoading(true);
     try {
+      const { analyzeVideoContext } = await import('./services/geminiService');
       const analysis = await analyzeVideoContext(
         metadata.title,
         metadata.author_name,
@@ -71,7 +72,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f12] text-white selection:bg-red-500/30 selection:text-red-200">
+    <div className="min-h-screen bg-[#0f0f12] bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.12),transparent_35%)] text-white selection:bg-red-500/30 selection:text-red-200">
       <Header onReset={handleReset} />
 
       <main className="pb-12 md:pb-20 px-2 sm:px-0">
@@ -82,15 +83,15 @@ const App: React.FC = () => {
         )}
 
         {error && (
-          <div className="max-w-2xl mx-auto mt-6 md:mt-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-200 animate-in fade-in slide-in-from-bottom-4">
+          <div className="max-w-2xl mx-auto mt-6 md:mt-8 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-200 animate-in fade-in slide-in-from-bottom-4 shadow-lg shadow-red-950/20">
             <AlertCircle className="w-5 h-5 shrink-0" />
             <p>{error}</p>
           </div>
         )}
 
         {videoData && (
-          <div className="max-w-6xl mx-auto mt-6 md:mt-8 px-3 md:px-8 space-y-5 md:space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-500">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="max-w-6xl mx-auto mt-6 md:mt-8 px-3 md:px-6 lg:px-8 space-y-5 md:space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-500">
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-black/20 border border-white/5 rounded-2xl p-3 md:p-4">
               <button
                 onClick={handleReset}
                 className="group flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 text-sm font-medium text-gray-300 hover:text-white transition-all duration-200 border border-white/5 hover:border-white/10"
@@ -120,10 +121,19 @@ const App: React.FC = () => {
 
               {isAiEnabled && (
                 <div className="lg:col-span-2">
-                  <AiInsights
-                    analysis={aiAnalysis ?? { summary: '', topics: [], suggestedQuestions: [] }}
-                    isLoading={isAiLoading || !aiAnalysis}
-                  />
+                  <Suspense
+                    fallback={
+                      <div className="h-full min-h-[260px] rounded-3xl border border-white/10 bg-gray-900/40 flex items-center justify-center text-gray-300 gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Loading AI module…</span>
+                      </div>
+                    }
+                  >
+                    <AiInsights
+                      analysis={aiAnalysis ?? { summary: '', topics: [], suggestedQuestions: [] }}
+                      isLoading={isAiLoading || !aiAnalysis}
+                    />
+                  </Suspense>
                 </div>
               )}
             </div>

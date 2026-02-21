@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { VideoMetadata } from '../types';
-import { Download, FileVideo, Music, Image as ImageIcon, Check, Loader2, ExternalLink, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Download, FileVideo, Music, Image as ImageIcon, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
 import { extractVideoId } from '../services/youtubeService';
 import { processDownload, downloadBlob } from '../services/downloadService';
 
@@ -17,7 +17,7 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
 
   const videoId = extractVideoId(metadata.url);
 
-  const downloadFormats = {
+  const downloadFormats = useMemo(() => ({
     video: [
       { label: '1080p', ext: 'mp4', sub: 'High Definition', icon: FileVideo, quality: '1080p' },
       { label: '720p', ext: 'mp4', sub: 'HD Ready', icon: FileVideo, quality: '720p' },
@@ -30,9 +30,9 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
       { label: 'Max Res', ext: 'jpg', sub: '1920x1080', icon: ImageIcon, url: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` },
       { label: 'High Quality', ext: 'jpg', sub: '480x360', icon: ImageIcon, url: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` },
     ]
-  };
+  }), [videoId]);
 
-  const handleDownload = async (item: any) => {
+  const handleDownload = async (item: { label: string; quality?: string; url?: string; }) => {
     setProcessing(item.label);
     setError(null);
     
@@ -54,7 +54,7 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
       }
 
       // 2. Handle Video/Audio
-      const result = await processDownload(metadata.url, activeTab as 'video' | 'audio', item.quality);
+      const result = await processDownload(metadata.url, activeTab as 'video' | 'audio', item.quality ?? '1080p', metadata.title);
       
       if (result.success && result.url) {
         const safeTitle = metadata.title.replace(/[\\/*?:"<>|]/g, '').trim().slice(0, 60) || 'download';
