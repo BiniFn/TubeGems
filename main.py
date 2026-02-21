@@ -10,10 +10,27 @@ except Exception:
 import requests
 import re
 import os
+import subprocess
 
 # Determine absolute path to dist folder
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DIST_DIR = os.path.join(BASE_DIR, 'dist')
+
+
+def ensure_frontend_build():
+    """Build the frontend if dist/index.html is missing."""
+    index_path = os.path.join(DIST_DIR, 'index.html')
+    if os.path.exists(index_path):
+        return
+
+    print("dist/index.html not found. Attempting to build frontend...")
+    try:
+        subprocess.run(["npm", "run", "build"], cwd=BASE_DIR, check=True)
+    except Exception as build_err:
+        print(f"Frontend build failed: {build_err}")
+
+
+ensure_frontend_build()
 
 # Initialize Flask App serving the 'dist' folder built by Vite
 app = Flask(__name__, static_folder=DIST_DIR, static_url_path='')
