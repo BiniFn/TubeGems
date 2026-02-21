@@ -121,10 +121,25 @@ export const processDownload = async (
     console.warn('Backend yt-dlp is up but cannot fetch this media right now, trying server-assisted fallback...');
 
     const safeTitle = (title || 'video').slice(0, 120);
-    const fallbackUrl = `${apiUrl}/fallback-download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}&title=${encodeURIComponent(safeTitle)}`;
+    const fallbackBase = `${apiUrl}/fallback-download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}&title=${encodeURIComponent(safeTitle)}`;
 
-    // Return a same-origin streaming endpoint to avoid expired/blocked third-party links.
-    return { success: true, url: fallbackUrl };
+    // Compatibility path during merges:
+    // - New backend: `/fallback-download` streams same-origin media.
+    // - Older backend: probe can return a third-party mirror URL JSON payload.
+    try {
+      const probeResponse = await fetch(`${fallbackBase}&probe=1`);
+      if (probeResponse.ok) {
+        const probePayload = await probeResponse.json().catch(() => null);
+        if (probePayload?.ok && probePayload?.url) {
+          return { success: true, url: probePayload.url };
+        }
+      }
+    } catch (_err) {
+      // Ignore and use same-origin stream endpoint below.
+    }
+
+    // Default to same-origin streaming endpoint to avoid expired/blocked third-party links.
+    return { success: true, url: fallbackBase };
   } else {
     console.warn('Backend not reachable, trying public mirrors...');
   }
