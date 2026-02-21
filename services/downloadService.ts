@@ -20,16 +20,20 @@ const COBALT_INSTANCES = [
 
 let cachedBackendState: { available: boolean; checkedAt: number } | null = null;
 const BACKEND_CACHE_TTL_MS = 30_000;
+const BACKEND_FAILURE_CACHE_TTL_MS = 5_000;
 
 const isBackendAvailable = async (apiUrl: string): Promise<boolean> => {
   const now = Date.now();
-  if (cachedBackendState && now - cachedBackendState.checkedAt < BACKEND_CACHE_TTL_MS) {
-    return cachedBackendState.available;
+  if (cachedBackendState) {
+    const ttl = cachedBackendState.available ? BACKEND_CACHE_TTL_MS : BACKEND_FAILURE_CACHE_TTL_MS;
+    if (now - cachedBackendState.checkedAt < ttl) {
+      return cachedBackendState.available;
+    }
   }
 
   try {
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 1500);
+    const id = setTimeout(() => controller.abort(), 5000);
     const health = await fetch(`${apiUrl}/health`, { signal: controller.signal });
     clearTimeout(id);
 
