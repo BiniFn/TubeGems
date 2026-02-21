@@ -73,14 +73,16 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
           link.click();
           document.body.removeChild(link);
         } else {
-          // Third-party temporary URLs can fail/resume poorly. Fetch as Blob first for reliability.
-          const response = await fetch(result.url);
-          if (!response.ok) throw new Error('Mirror download is temporarily unavailable');
-
-          const blob = await response.blob();
-          const blobUrl = window.URL.createObjectURL(blob);
-          downloadBlob(blobUrl, filename);
-          window.URL.revokeObjectURL(blobUrl);
+          // Third-party media hosts often block CORS, so blob fetching can fail.
+          // Use a direct navigation fallback that still allows the browser to download the file.
+          const link = document.createElement('a');
+          link.href = result.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
         }
       } else {
         setError(result.error || 'Failed to generate link');
