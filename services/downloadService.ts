@@ -46,6 +46,25 @@ const isBackendAvailable = async (apiUrl: string): Promise<boolean> => {
   }
 };
 
+
+const backendDownloadProbe = async (apiUrl: string, url: string, type: 'video' | 'audio', quality: string): Promise<boolean> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const probeUrl = `${apiUrl}/download?probe=1&url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
+    const response = await fetch(probeUrl, { signal: controller.signal });
+    if (!response.ok) return false;
+
+    const payload = await response.json().catch(() => null);
+    return Boolean(payload?.ok);
+  } catch (_err) {
+    return false;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 const fetchFromCobalt = async (api: string, body: Record<string, unknown>): Promise<string | null> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -92,11 +111,16 @@ export const processDownload = async (
   // 1. PRIORITY: Local backend when available (most stable + avoids temporary third-party links)
   const backendAvailable = await isBackendAvailable(apiUrl);
   if (backendAvailable) {
-    const downloadUrl = `${apiUrl}/download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
-    return { success: true, url: downloadUrl };
-  }
+    const backendReady = await backendDownloadProbe(apiUrl, url, type, quality);
+    if (backendReady) {
+      const downloadUrl = `${apiUrl}/download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
+      return { success: true, url: downloadUrl };
+    }
 
-  console.warn('Backend not reachable, trying public mirrors...');
+    console.warn('Backend is up but cannot fetch this media right now, trying public mirrors...');
+  } else {
+    console.warn('Backend not reachable, trying public mirrors...');
+  }
   
   // 2. FALLBACK: Cobalt API Mirrors (Client-Side)
   // Map our quality to Cobalt quality

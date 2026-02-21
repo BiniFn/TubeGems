@@ -73,16 +73,12 @@ export const DownloadSection: React.FC<DownloadSectionProps> = ({ metadata }) =>
           link.click();
           document.body.removeChild(link);
         } else {
-          // Third-party media hosts often block CORS, so blob fetching can fail.
-          // Use a direct navigation fallback that still allows the browser to download the file.
-          const link = document.createElement('a');
-          link.href = result.url;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          link.download = filename;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+          // Third-party URLs are often signed and can fail when forced through the
+          // `download` attribute. Open the source URL directly instead.
+          const popup = window.open(result.url, '_blank', 'noopener,noreferrer');
+          if (!popup) {
+            window.location.href = result.url;
+          }
         }
       } else {
         setError(result.error || 'Failed to generate link');
