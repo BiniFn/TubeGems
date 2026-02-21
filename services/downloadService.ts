@@ -49,7 +49,7 @@ const isBackendAvailable = async (apiUrl: string): Promise<boolean> => {
 
 const backendDownloadProbe = async (apiUrl: string, url: string, type: 'video' | 'audio', quality: string): Promise<boolean> => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), 4500);
 
   try {
     const probeUrl = `${apiUrl}/download?probe=1&url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
@@ -103,7 +103,8 @@ const fetchFromCobalt = async (api: string, body: Record<string, unknown>): Prom
 export const processDownload = async (
   url: string, 
   type: 'video' | 'audio', 
-  quality: string
+  quality: string,
+  title?: string
 ): Promise<{ success: boolean; url?: string; error?: string }> => {
   const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const apiUrl = isDev ? 'http://localhost:5000' : '';
@@ -117,7 +118,13 @@ export const processDownload = async (
       return { success: true, url: downloadUrl };
     }
 
-    console.warn('Backend is up but cannot fetch this media right now, trying public mirrors...');
+    console.warn('Backend yt-dlp is up but cannot fetch this media right now, trying server-assisted fallback...');
+
+    const safeTitle = (title || 'video').slice(0, 120);
+    const fallbackUrl = `${apiUrl}/fallback-download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}&title=${encodeURIComponent(safeTitle)}`;
+
+    // Return a same-origin streaming endpoint to avoid expired/blocked third-party links.
+    return { success: true, url: fallbackUrl };
   } else {
     console.warn('Backend not reachable, trying public mirrors...');
   }

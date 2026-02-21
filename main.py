@@ -5,6 +5,7 @@ import requests
 import re
 import os
 import subprocess
+import random
 
 # Determine absolute path to dist folder
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -26,6 +27,18 @@ def ensure_frontend_build():
 
 ensure_frontend_build()
 
+COBALT_INSTANCES = [
+    'https://cobalt.steamodded.com/api/json',
+    'https://dl.khub.ky/api/json',
+    'https://api.succoon.com/api/json',
+    'https://cobalt.rayrad.net/api/json',
+    'https://cobalt.slpy.one/api/json',
+    'https://cobalt.soapless.dev/api/json',
+    'https://api.wuk.sh/api/json',
+    'https://co.wuk.sh/api/json',
+    'https://api.cobalt.tools/api/json',
+]
+
 # Initialize Flask App serving the 'dist' folder built by Vite
 app = Flask(__name__, static_folder=DIST_DIR, static_url_path='')
 CORS(app)
@@ -42,7 +55,7 @@ def serve_assets(path):
 
 @app.route('/<path:path>')
 def catch_all(path):
-    if path.startswith('api') or path in ['health', 'download']:
+    if path.startswith('api') or path in ['health', 'download', 'fallback-download']:
         return "Not Found", 404
     
     full_path = os.path.join(app.static_folder, path)
@@ -58,12 +71,85 @@ def catch_all(path):
 def health():
     return jsonify({"status": "ok", "service": "yt-dlp-downloader"})
 
+
+def resolve_with_cobalt(url, type_, quality):
+    v_quality = '1080' if quality == '1080p' else '720' if quality == '720p' else '480'
+    payload = {
+        'url': url,
+        'vQuality': v_quality,
+        'isAudioOnly': type_ == 'audio',
+        'aFormat': 'mp3' if type_ == 'audio' else None,
+        'filenamePattern': 'basic',
+    }
+
+    mirrors = COBALT_INSTANCES.copy()
+    random.shuffle(mirrors)
+
+    for api in mirrors:
+        try:
+            response = requests.post(
+                api,
+                json=payload,
+                headers={'Accept': 'application/json', 'Content-Type': 'application/json'},
+                timeout=8,
+            )
+            if not response.ok:
+                continue
+
+            data = response.json()
+            status = data.get('status')
+            if status in ('stream', 'redirect') and data.get('url'):
+                return data.get('url')
+
+            picker = data.get('picker') or []
+            if status == 'picker' and len(picker) > 0 and picker[0].get('url'):
+                return picker[0].get('url')
+        except Exception:
+            continue
+
+    return None
+
+
+@app.route('/fallback-download', methods=['GET'])
+def fallback_download():
+    url = request.args.get('url')
+    type_ = request.args.get('type', 'video')
+    quality = request.args.get('quality', '1080p')
+    raw_title = request.args.get('title', 'video')
+    probe = request.args.get('probe') == '1'
+
+    if not url:
+        return jsonify({"ok": False, "error": "Missing URL"}), 400
+
+    candidate = resolve_with_cobalt(url, type_, quality)
+    if not candidate:
+        return jsonify({"ok": False, "error": "All download servers are busy. Please try another video or check back later."}), 503
+
+    filename_ext = 'mp3' if type_ == 'audio' else 'mp4'
+    safe_title = sanitize_filename(raw_title).strip()[:120] or 'video'
+    filename = f"{safe_title}.{filename_ext}"
+
+    if probe:
+        return jsonify({"ok": True, "filename": filename, "url": candidate})
+
+    content_type = 'audio/mpeg' if type_ == 'audio' else 'video/mp4'
+    resp_headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"',
+        'Content-Type': content_type,
+        'Cache-Control': 'no-store',
+    }
+    return Response(stream_with_context(stream_proxy(candidate)), headers=resp_headers)
+
 def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
 
 def stream_proxy(url, headers=None):
     try:
-        with requests.get(url, stream=True, headers=headers) as external_req:
+        request_headers = {'User-Agent': 'TubeGems/1.0'}
+        if headers:
+            request_headers.update(headers)
+
+        with requests.get(url, stream=True, headers=request_headers, timeout=20) as external_req:
             external_req.raise_for_status()
             for chunk in external_req.iter_content(chunk_size=16384):
                 if chunk:
