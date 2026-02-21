@@ -1,13 +1,11 @@
 <h1 align="center">💎 TubeGems</h1>
 
 <p align="center">
-<p>
+<div align="center">
   <strong>The ultimate AI-powered YouTube intelligence toolkit. Summarize, extract, and archive in seconds.</strong>
   <br><br>
-  <span style="display: block; text-align: center;">
-    <strong>------> Made With ❤️ By BiniFn <-------</strong>
-  </span>
-</p>
+  <strong>------> Made With ❤️ By BiniFn <-------</strong>
+</div>
 
 <p align="center">
 <a href="https://github.com/BiniFn/TubeGems/stargazers">
