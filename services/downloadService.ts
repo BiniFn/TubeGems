@@ -117,7 +117,20 @@ export const processDownload = async (
       return { success: true, url: downloadUrl };
     }
 
-    console.warn('Backend is up but cannot fetch this media right now, trying public mirrors...');
+    console.warn('Backend yt-dlp is up but cannot fetch this media right now, trying server-assisted fallback...');
+
+    try {
+      const fallbackUrl = `${apiUrl}/fallback-download?url=${encodeURIComponent(url)}&type=${type}&quality=${quality}`;
+      const fallbackResponse = await fetch(fallbackUrl);
+      if (fallbackResponse.ok) {
+        const payload = await fallbackResponse.json();
+        if (payload?.ok && payload?.url) {
+          return { success: true, url: payload.url };
+        }
+      }
+    } catch (_err) {
+      // Ignore and continue to direct client mirror fallback.
+    }
   } else {
     console.warn('Backend not reachable, trying public mirrors...');
   }

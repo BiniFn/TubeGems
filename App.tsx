@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { Header } from './components/Header';
 import { UrlInput } from './components/UrlInput';
 import { VideoPreview } from './components/VideoPreview';
-import { AiInsights } from './components/AiInsights';
 import { DownloadSection } from './components/DownloadSection';
 import { fetchVideoMetadata } from './services/youtubeService';
-import { analyzeVideoContext } from './services/geminiService';
 import { VideoMetadata, AiAnalysisResult } from './types';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
+
+const AiInsights = React.lazy(() => import('./components/AiInsights').then((module) => ({ default: module.AiInsights })));
 
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -21,6 +21,7 @@ const App: React.FC = () => {
   const runAiAnalysis = async (metadata: VideoMetadata) => {
     setIsAiLoading(true);
     try {
+      const { analyzeVideoContext } = await import('./services/geminiService');
       const analysis = await analyzeVideoContext(
         metadata.title,
         metadata.author_name,
@@ -120,10 +121,19 @@ const App: React.FC = () => {
 
               {isAiEnabled && (
                 <div className="lg:col-span-2">
-                  <AiInsights
-                    analysis={aiAnalysis ?? { summary: '', topics: [], suggestedQuestions: [] }}
-                    isLoading={isAiLoading || !aiAnalysis}
-                  />
+                  <Suspense
+                    fallback={
+                      <div className="h-full min-h-[260px] rounded-3xl border border-white/10 bg-gray-900/40 flex items-center justify-center text-gray-300 gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Loading AI module…</span>
+                      </div>
+                    }
+                  >
+                    <AiInsights
+                      analysis={aiAnalysis ?? { summary: '', topics: [], suggestedQuestions: [] }}
+                      isLoading={isAiLoading || !aiAnalysis}
+                    />
+                  </Suspense>
                 </div>
               )}
             </div>
