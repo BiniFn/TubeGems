@@ -1,13 +1,16 @@
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { Header } from './components/Header';
 import { UrlInput } from './components/UrlInput';
 import { VideoPreview } from './components/VideoPreview';
 import { DownloadSection } from './components/DownloadSection';
+import { FeatureHighlights } from './components/FeatureHighlights';
 import { fetchVideoMetadata } from './services/youtubeService';
 import { VideoMetadata, AiAnalysisResult } from './types';
 import { AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 
-const AiInsights = React.lazy(() => import('./components/AiInsights').then((module) => ({ default: module.AiInsights })));
+const LazyAiInsights = React.lazy(() => import('./components/AiInsights').then((module) => ({ default: module.AiInsights })));
+
+type ThemeMode = 'obsidian' | 'nebula';
 
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -17,6 +20,18 @@ const App: React.FC = () => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [key, setKey] = useState(0);
+  const [theme, setTheme] = useState<ThemeMode>('obsidian');
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem('tubegems-theme') as ThemeMode | null;
+    if (savedTheme === 'obsidian' || savedTheme === 'nebula') {
+      setTheme(savedTheme);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('tubegems-theme', theme);
+  }, [theme]);
 
   const runAiAnalysis = async (metadata: VideoMetadata) => {
     setIsAiLoading(true);
@@ -71,15 +86,23 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const themeClasses =
+    theme === 'obsidian'
+      ? 'bg-[#0f0f12] bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.12),transparent_35%)]'
+      : 'bg-[#0b1020] bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.2),transparent_40%)]';
+
   return (
-    <div className="min-h-screen bg-[#0f0f12] bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.12),transparent_35%)] text-white selection:bg-red-500/30 selection:text-red-200">
-      <Header onReset={handleReset} />
+    <div className={`min-h-screen ${themeClasses} text-white selection:bg-red-500/30 selection:text-red-200`}>
+      <Header onReset={handleReset} theme={theme} onToggleTheme={() => setTheme((prev) => (prev === 'obsidian' ? 'nebula' : 'obsidian'))} />
 
       <main className="pb-12 md:pb-20 px-2 sm:px-0">
         {!videoData && (
-          <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-            <UrlInput key={key} onSearch={handleSearch} isLoading={isLoading} isAiEnabled={isAiEnabled} onToggleAi={handleToggleAi} />
-          </div>
+          <>
+            <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+              <UrlInput key={key} onSearch={handleSearch} isLoading={isLoading} isAiEnabled={isAiEnabled} onToggleAi={handleToggleAi} />
+            </div>
+            <FeatureHighlights />
+          </>
         )}
 
         {error && (
@@ -129,7 +152,7 @@ const App: React.FC = () => {
                       </div>
                     }
                   >
-                    <AiInsights
+                    <LazyAiInsights
                       analysis={aiAnalysis ?? { summary: '', topics: [], suggestedQuestions: [] }}
                       isLoading={isAiLoading || !aiAnalysis}
                     />
@@ -141,7 +164,7 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="py-6 md:py-8 text-center text-gray-600 text-xs md:text-sm border-t border-white/5 mt-auto bg-[#0a0a0c] px-4">
+      <footer className="py-6 md:py-8 text-center text-gray-500 text-xs md:text-sm border-t border-white/5 mt-auto bg-black/25 px-4 backdrop-blur-sm">
         <p>© 2026 TubeGems By BiniFn</p>
       </footer>
     </div>
