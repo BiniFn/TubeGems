@@ -129,6 +129,9 @@ def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
 
 def stream_proxy(url, headers=None):
+    headers = headers or {}
+    if 'User-Agent' not in headers:
+        headers = dict(headers, **{'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:109.0) Gecko/20100101 Firefox/121.0'})
     try:
         with requests.get(url, stream=True, headers=headers) as external_req:
             external_req.raise_for_status()
@@ -155,11 +158,13 @@ def download():
         quality_map = {'1080p': '1080', '720p': '720', '480p': '480'}
         max_height = quality_map.get(quality, '1080')
 
+        # Prefer progressive formats (single URL) - YouTube 1080p+ often requires merge (no direct URL)
+        # 720p and below are usually progressive and streamable directly
         ydl_opts = {
             'quiet': True,
             'noplaylist': True,
             'format': (
-                f"best[ext=mp4][height<={max_height}]/best[height<={max_height}]"
+                f"best[height<={max_height}][ext=mp4]/best[height<={max_height}]/best[ext=mp4]/best"
                 if type_ == 'video'
                 else 'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio'
             ),
@@ -168,6 +173,13 @@ def download():
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             download_url = info.get('url')
+            req_headers = info.get('http_headers', {})
+            # Fallback: yt-dlp sometimes puts URL in requested_formats for single-format selection
+            if not download_url:
+                rf = info.get('requested_formats') or []
+                if len(rf) == 1 and rf[0].get('url'):
+                    download_url = rf[0]['url']
+                    req_headers = rf[0].get('http_headers') or req_headers
             
             if download_url:
                 title = info.get('title', 'video')
@@ -186,7 +198,6 @@ def download():
                     content_type = 'video/mp4'
                 else:
                     content_type = 'audio/webm' if ext == 'webm' else 'audio/mp4'
-                req_headers = info.get('http_headers', {})
 
                 resp_headers = {
                     'Content-Disposition': f'attachment; filename="{filename}"',
